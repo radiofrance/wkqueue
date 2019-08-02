@@ -32,7 +32,8 @@ type Queue interface {
 	Close() error
 	WaitAndClose() error
 
-	Workers() int
+	WorkersLimit() int
+	NumWorkers() int
 	JobCapacity() int
 	JobLoad() int
 }
@@ -45,6 +46,10 @@ func New(opts ...Options) (Queue, error) {
 		if err := opt.apply(q); err != nil {
 			return nil, err
 		}
+	}
+
+	if len(q.rootWorkers) == 0 {
+		return nil, newErrNoWorker()
 	}
 	return q, nil
 }

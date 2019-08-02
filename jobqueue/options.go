@@ -15,12 +15,11 @@ var defaultsOpts = []Options{
 	SetWorkerCapacity(uint(runtime.NumCPU())),
 	SetJobTimeout(time.Second),
 	SetRetryDelay(time.Second),
-	SetSuccessHandler(func(Worker, Job) { return }),
-	SetDropHandler(func(Worker, Job) { return }),
-	SetErrHandler(func(Worker, error, Job) { return }),
-	SetPanicHandler(func(Worker, interface{}, Job) { return }),
+	SetSuccessHandler(func(Worker, Job) {}),
+	SetDropHandler(func(Worker, Job) {}),
+	SetErrHandler(func(Worker, error, Job) {}),
+	SetPanicHandler(func(Worker, interface{}, Job) {}),
 }
-
 
 type optionFunc func(*queue) error
 type optionFuncNoErr func(*queue)
@@ -43,6 +42,7 @@ func SetJobCapacity(capacity uint) Options {
 	return optionFuncNoErr(func(q *queue) { q.jobq = make(chan Job, capacity) })
 }
 func SetWorkerCapacity(capacity uint) Options {
+	// same as above
 	return optionFuncNoErr(func(q *queue) { q.workerq = make(chan workerSocket, capacity) })
 }
 func SetJobTimeout(timeout time.Duration) Options {

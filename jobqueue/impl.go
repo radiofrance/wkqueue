@@ -14,9 +14,6 @@ type workerSocket struct {
 
 // queue in an internal Queue implementation
 type queue struct {
-	jobCapacity     uint
-	workersCapacity uint
-
 	jobTimeout       time.Duration
 	retryDelay       time.Duration
 	requeueIfTimeout bool
@@ -46,8 +43,11 @@ func (q *queue) Sync() chan<- Job {
 		// if jobq is closed, ignore new job
 		go func() { defer close(sync); <-sync }()
 	} else {
-		// TODO(ani): recover to avoid panic
-		go func() { defer close(sync); q.jobq <- <-sync }()
+		go func() {
+			defer func() { recover() }() // avoid panic if q.jobq is closed
+			defer close(sync)
+			q.jobq <- <-sync
+		}()
 	}
 	return sync
 }
@@ -63,8 +63,8 @@ func (q *queue) Async(timeout time.Duration) chan<- Job {
 		// if jobq is closed, ignore new job
 		go func() { defer close(async); <-async }()
 	} else {
-		// TODO(ani): recover to avoid panic
 		go func() {
+			defer func() { recover() }() // avoid panic if q.jobq is closed
 			defer close(async)
 			select {
 			case q.jobq <- <-async:
@@ -80,7 +80,7 @@ func (q *queue) Scale(workers uint) (int, error) {
 	q.sync.Lock()
 	defer q.sync.Unlock()
 
-	delta := int(workers) - q.Workers()
+	delta := int(workers) - q.NumWorkers()
 	if delta > 0 {
 		return q.addWorkers(delta)
 	}
@@ -154,8 +154,11 @@ func (q *queue) ResumeWorkers() {
 	q.suspended = true
 }
 
-// Workers returns the number of worker in worker queue.
-func (q *queue) Workers() int { return len(q.workerq) }
+// NumWorkers returns the number of worker in worker queue.
+func (q *queue) WorkersLimit() int { return cap(q.workerq) }
+
+// NumWorkers returns the number of worker in worker queue.
+func (q *queue) NumWorkers() int { return len(q.workerq) }
 
 // JobCapacity returns the number of maximum jobs in job queue.
 func (q *queue) JobCapacity() int { return cap(q.jobq) }

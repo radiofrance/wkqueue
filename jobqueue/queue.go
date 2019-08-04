@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// SucceedHandler is called when a job is successfully consumed.
-type SucceedHandler func(worker Worker, job Job)
+// SuccessHandler is called when a job is successfully consumed.
+type SuccessHandler func(worker Worker, job Job)
 
 // ErrHandler is called when an error occurs during the job
 // consumption.
@@ -29,8 +29,8 @@ type Queue interface {
 	SuspendWorkers()
 	ResumeWorkers()
 
-	Close() error
-	WaitAndClose() error
+	Close()
+	WaitAndClose()
 
 	WorkersLimit() int
 	NumWorkers() int

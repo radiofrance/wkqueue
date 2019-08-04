@@ -2,8 +2,6 @@ package jobqueue
 
 import (
 	"time"
-
-	"golang.org/x/xerrors"
 )
 
 func (q queue) asyncExec(wk Worker, job Job) error {
@@ -48,13 +46,14 @@ func (q queue) do(wks workers, wkch workerSocket) {
 				continue
 			}
 
+			consumed := false
 			for _, wk := range wks {
 				if !wk.CanConsume(job) {
 					continue
 				}
+				consumed = true
 
 				err := q.asyncExec(wk, job)
-
 				if err == nil {
 					q.succeedHandler(wk, job)
 					continue
@@ -63,7 +62,9 @@ func (q queue) do(wks workers, wkch workerSocket) {
 				q.errHandler(wk, err, job)
 				// if job timeout and requeueIfTimeout is enable, just continue without
 				// requeuing the job.
-				if !q.requeueIfTimeout && xerrors.As(err, ErrJobTimeout(nil)) {
+				_, hasTimeout := err.(*ErrJobTimeout)
+				if !q.requeueIfTimeout && hasTimeout {
+					q.dropHandler(wk, job)
 					continue
 				}
 
@@ -78,6 +79,10 @@ func (q queue) do(wks workers, wkch workerSocket) {
 				} else {
 					q.dropHandler(wk, job)
 				}
+			}
+
+			if !consumed {
+				q.dropHandler(nil, job) // drop the job if no worker can consume it
 			}
 
 		case _, ok := <-wkch.suspend:

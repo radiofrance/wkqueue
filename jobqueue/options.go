@@ -54,7 +54,7 @@ func SetRetryDelay(delay time.Duration) Options {
 func RequeueIfTimeout() Options {
 	return optionFuncNoErr(func(q *queue) { q.requeueIfTimeout = true })
 }
-func SetSuccessHandler(handler SucceedHandler) Options {
+func SetSuccessHandler(handler SuccessHandler) Options {
 	return optionFunc(func(q *queue) error {
 		if handler == nil {
 			return newErrNilHandler("SuccessHandler")

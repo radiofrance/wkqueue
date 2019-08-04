@@ -18,7 +18,7 @@ type queue struct {
 	retryDelay       time.Duration
 	requeueIfTimeout bool
 
-	succeedHandler SucceedHandler
+	succeedHandler SuccessHandler
 	dropHandler    DropHandler
 	errHandler     ErrHandler
 	panicHandler   PanicHandler
@@ -38,18 +38,13 @@ func (q *queue) Sync() chan<- Job {
 	q.sync.RLock()
 	defer q.sync.RUnlock()
 
-	sync := make(chan Job)
 	if q.closed {
 		// if jobq is closed, ignore new job
+		sync := make(chan Job)
 		go func() { defer close(sync); <-sync }()
-	} else {
-		go func() {
-			defer func() { recover() }() // avoid panic if q.jobq is closed
-			defer close(sync)
-			q.jobq <- <-sync
-		}()
+		return sync
 	}
-	return sync
+	return q.jobq
 }
 
 // Async return a temporary channel with timeout, synchronized
@@ -88,7 +83,14 @@ func (q *queue) Scale(workers uint) (int, error) {
 }
 
 // Close flushes and closes the job queue and stop all workers.
-func (q *queue) Close() error {
+func (q *queue) Close() {
+	q.sync.RLock()
+	if q.closed {
+		q.sync.RUnlock()
+		return
+	}
+	q.sync.RUnlock()
+
 	q.sync.Lock()
 	q.closed = true
 
@@ -98,11 +100,18 @@ func (q *queue) Close() error {
 
 	q.sync.Unlock()
 	_, _ = q.Scale(0)
-	return nil
+	return
 }
 
 // WaitAndClose waits the job queue to be empty before closing all workers.
-func (q *queue) WaitAndClose() error {
+func (q *queue) WaitAndClose() {
+	q.sync.RLock()
+	if q.closed {
+		q.sync.RUnlock()
+		return
+	}
+	q.sync.RUnlock()
+
 	q.sync.Lock()
 	q.closed = true
 	close(q.jobq)
@@ -113,7 +122,7 @@ func (q *queue) WaitAndClose() error {
 	}
 
 	_, _ = q.Scale(0)
-	return nil
+	return
 }
 
 // SuspendWorkers suspend all workers.
@@ -169,7 +178,7 @@ func (q *queue) JobLoad() int { return len(q.jobq) }
 // addWorkers add N workers to the worker queue.
 func (q *queue) addWorkers(n int) (int, error) {
 	for i := 0; i < n; i++ {
-		if len(q.workerq) == n {
+		if len(q.workerq) == cap(q.workerq) {
 			return i, newErrMaxWorkerReached()
 		}
 
@@ -193,8 +202,9 @@ func (q *queue) addWorkers(n int) (int, error) {
 // removeWorker remove N workers from the worker queue.
 func (q *queue) removeWorker(workers int) (int, error) {
 	for i := 0; i < workers; i++ {
+		// can't enter in this condition ... (theoretically)
 		if len(q.workerq) == 0 {
-			return i, newErrMinWorkerReached()
+			return -i, newErrMinWorkerReached()
 		}
 
 		worker := <-q.workerq
@@ -204,7 +214,7 @@ func (q *queue) removeWorker(workers int) (int, error) {
 		close(worker.resume)
 	}
 
-	return workers, nil
+	return -workers, nil
 }
 
 // workers simplify processes with several workers

@@ -12,16 +12,36 @@ import (
 )
 
 var testmap = map[string]func(t *testing.T, q *queue, expect interface{}){
-	"rootWorkers":      func(t *testing.T, q *queue, expect interface{}) { assert.Equal(t, expect, q.rootWorkers, "invalid value for 'rootWorkers'") },
-	"jobq":             func(t *testing.T, q *queue, expect interface{}) { assert.Equal(t, expect, cap(q.jobq), "invalid value for 'jobq'") },
-	"workerq":          func(t *testing.T, q *queue, expect interface{}) { assert.Equal(t, expect, cap(q.workerq), "invalid value for 'workerq'") },
-	"jobTimeout":       func(t *testing.T, q *queue, expect interface{}) { assert.Equal(t, expect, q.jobTimeout, "invalid value for 'jobTimeout'") },
-	"retryDelay":       func(t *testing.T, q *queue, expect interface{}) { assert.Equal(t, expect, q.retryDelay, "invalid value for 'retryDelay'") },
-	"requeueIfTimeout": func(t *testing.T, q *queue, expect interface{}) { assert.Equal(t, expect, q.requeueIfTimeout, "invalid value for 'requeueIfTimeout'") },
-	"successHandler":   func(t *testing.T, q *queue, expect interface{}) { assert.IsType(t, expect, q.succeedHandler, "invalid value for 'succeedHandler'") },
-	"dropHandler":      func(t *testing.T, q *queue, expect interface{}) { assert.IsType(t, expect, q.dropHandler, "invalid value for 'dropHandler'") },
-	"errHandler":       func(t *testing.T, q *queue, expect interface{}) { assert.IsType(t, expect, q.errHandler, "invalid value for 'errHandler'") },
-	"panicHandler":     func(t *testing.T, q *queue, expect interface{}) { assert.IsType(t, expect, q.panicHandler, "invalid value for 'panicHandler'") },
+	"rootWorkers": func(t *testing.T, q *queue, expect interface{}) {
+		assert.Equal(t, expect, q.rootWorkers, "invalid value for 'rootWorkers'")
+	},
+	"jobq": func(t *testing.T, q *queue, expect interface{}) {
+		assert.Equal(t, expect, cap(q.jobq), "invalid value for 'jobq'")
+	},
+	"workerq": func(t *testing.T, q *queue, expect interface{}) {
+		assert.Equal(t, expect, cap(q.workerq), "invalid value for 'workerq'")
+	},
+	"jobTimeout": func(t *testing.T, q *queue, expect interface{}) {
+		assert.Equal(t, expect, q.jobTimeout, "invalid value for 'jobTimeout'")
+	},
+	"retryDelay": func(t *testing.T, q *queue, expect interface{}) {
+		assert.Equal(t, expect, q.retryDelay, "invalid value for 'retryDelay'")
+	},
+	"requeueIfTimeout": func(t *testing.T, q *queue, expect interface{}) {
+		assert.Equal(t, expect, q.requeueIfTimeout, "invalid value for 'requeueIfTimeout'")
+	},
+	"successHandler": func(t *testing.T, q *queue, expect interface{}) {
+		assert.IsType(t, expect, q.succeedHandler, "invalid value for 'succeedHandler'")
+	},
+	"dropHandler": func(t *testing.T, q *queue, expect interface{}) {
+		assert.IsType(t, expect, q.dropHandler, "invalid value for 'dropHandler'")
+	},
+	"errHandler": func(t *testing.T, q *queue, expect interface{}) {
+		assert.IsType(t, expect, q.errHandler, "invalid value for 'errHandler'")
+	},
+	"panicHandler": func(t *testing.T, q *queue, expect interface{}) {
+		assert.IsType(t, expect, q.panicHandler, "invalid value for 'panicHandler'")
+	},
 }
 
 func TestNew(t *testing.T) {
@@ -162,7 +182,7 @@ func (s *JobQueueTestSuite) TestAsync() {
 
 	// call async after close jobq must be ignored (to avoid panic)
 	s.q.Close()
-	s.NotPanics(func() { s.q.Sync() <- Job{MaxRetry: 1} })
+	s.NotPanics(func() { s.q.Async(time.Millisecond) <- Job{MaxRetry: 1} })
 }
 func (s *JobQueueTestSuite) TestMultiClose() {
 	s.q.Close()
@@ -279,7 +299,7 @@ func (s *WorkerTestSuite) TestSuspendWorker() {
 
 	q.Sync() <- Job{}
 	time.Sleep(time.Millisecond) // wait worker to consume the job
-	s.Equal(1, q.JobLoad()) // expect 1 because workers are suspended
+	s.Equal(1, q.JobLoad())      // expect 1 because workers are suspended
 
 	q.ResumeWorkers()
 
@@ -339,8 +359,8 @@ func (s *JobTestSuite) TestDropNoValidWorker() {
 func (s *JobTestSuite) TestJobTimeout() {
 	droppedJob := make(chan Job)
 	q, _ := New(
-		AddWorker(WorkerFunc(func(Job) error { time.Sleep(time.Millisecond); return nil })),
-		SetJobTimeout(time.Microsecond),
+		AddWorker(WorkerFunc(func(Job) error { time.Sleep(time.Microsecond); return nil })),
+		SetJobTimeout(time.Nanosecond),
 		SetRetryDelay(0),
 		SetDropHandler(func(_ Worker, job Job) { droppedJob <- job }),
 	)
@@ -353,9 +373,9 @@ func (s *JobTestSuite) TestJobTimeout() {
 func (s *JobTestSuite) TestJobRequeueTimeout() {
 	droppedJob := make(chan Job)
 	q, _ := New(
-		AddWorker(WorkerFunc(func(Job) error { time.Sleep(time.Millisecond); return nil })),
+		AddWorker(WorkerFunc(func(Job) error { time.Sleep(time.Microsecond); return nil })),
 		RequeueIfTimeout(),
-		SetJobTimeout(time.Microsecond),
+		SetJobTimeout(time.Nanosecond),
 		SetRetryDelay(0),
 		SetDropHandler(func(_ Worker, job Job) { droppedJob <- job }),
 	)

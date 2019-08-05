@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-func (q queue) asyncExec(wk Worker, job Job) error {
+func (q *queue) asyncExec(wk Worker, job Job) error {
 	cerr := make(chan error)
 
 	// because worker must no be stucked or crashed, we need to run worker.Do
@@ -35,7 +35,7 @@ func (q queue) asyncExec(wk Worker, job Job) error {
 	}
 }
 
-func (q queue) do(wks workers, wkch workerSocket) {
+func (q *queue) do(wks workers, wkch workerSocket) {
 	defer wks.terminate()
 
 	for {

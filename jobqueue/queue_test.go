@@ -313,7 +313,7 @@ func (s *JobTestSuite) getDroppedJob(ch chan Job) Job {
 	select {
 	case j := <-ch:
 		return j
-	case <-time.After(time.Millisecond):
+	case <-time.After(time.Second):
 		s.FailNow("message not dropped")
 	}
 	return Job{}
@@ -322,7 +322,7 @@ func (s *JobTestSuite) getPanickedJob(ch chan interface{}) interface{} {
 	select {
 	case x := <-ch:
 		return x
-	case <-time.After(time.Millisecond):
+	case <-time.After(time.Second):
 		s.FailNow("worker not panicked")
 	}
 	return nil

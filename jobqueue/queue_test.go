@@ -125,9 +125,8 @@ type JobQueueTestSuite struct {
 }
 
 func (s *JobQueueTestSuite) SetupTest() {
-	s.jobs = make(chan Job, 16)
 	s.q, _ = New(
-		AddWorker(WorkerFunc(func(j Job) error { s.jobs <- j; return nil })),
+		AddWorker(WorkerFunc(func(j Job) error { return nil })),
 		SetWorkerCapacity(4),
 	)
 }
@@ -165,24 +164,6 @@ func (s *JobQueueTestSuite) TestSync() {
 	// call sync after close jobq must be ignored (to avoid panic)
 	s.q.Close()
 	s.NotPanics(func() { s.q.Sync() <- Job{MaxRetry: 1} })
-}
-func (s *JobQueueTestSuite) TestAsync() {
-	// fill job queue
-	for i := 0; i < s.q.JobCapacity(); i++ {
-		s.q.Sync() <- Job{MaxRetry: 1}
-	}
-	s.Equal(s.q.JobCapacity(), s.q.JobLoad())
-
-	// async test when job queue is full
-	select {
-	case s.q.Async(0) <- Job{MaxRetry: 1}:
-	case <-time.After(time.Millisecond):
-		s.FailNow("Async call must not be blocked (job queue is full but async use a oneshot parallel buffer)")
-	}
-
-	// call async after close jobq must be ignored (to avoid panic)
-	s.q.Close()
-	s.NotPanics(func() { s.q.Async(time.Millisecond) <- Job{MaxRetry: 1} })
 }
 func (s *JobQueueTestSuite) TestMultiClose() {
 	s.q.Close()

@@ -34,6 +34,7 @@ type queue struct {
 }
 
 // Sync return a channel synchronized with the job queue.
+// If the returned queue is closed, unexpected behaviors like panic can occurs.
 func (q *queue) Sync() chan<- Job {
 	q.sync.RLock()
 	defer q.sync.RUnlock()
@@ -45,29 +46,6 @@ func (q *queue) Sync() chan<- Job {
 		return sync
 	}
 	return q.jobq
-}
-
-// Async return a temporary channel with timeout, synchronized
-// with the job queue.
-func (q *queue) Async(timeout time.Duration) chan<- Job {
-	q.sync.RLock()
-	defer q.sync.RUnlock()
-
-	async := make(chan Job)
-	if q.closed {
-		// if jobq is closed, ignore new job
-		go func() { defer close(async); <-async }()
-	} else {
-		go func() {
-			defer func() { recover() }() // avoid panic if q.jobq is closed
-			defer close(async)
-			select {
-			case q.jobq <- <-async:
-			case <-time.After(timeout):
-			}
-		}()
-	}
-	return async
 }
 
 // Scale adds or removes worker to reach the given value.

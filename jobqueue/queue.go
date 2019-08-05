@@ -2,7 +2,6 @@ package jobqueue
 
 import (
 	"sync"
-	"time"
 )
 
 // SuccessHandler is called when a job is successfully consumed.
@@ -22,7 +21,6 @@ type PanicHandler func(worker Worker, recover interface{}, job Job)
 // TODO(ani): add documentation
 type Queue interface {
 	Sync() chan<- Job
-	Async(time.Duration) chan<- Job
 
 	Scale(uint) (int, error)
 

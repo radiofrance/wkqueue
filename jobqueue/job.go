@@ -3,6 +3,12 @@ package jobqueue
 // JobHeaders contains optional headers.
 type JobHeaders map[string]interface{}
 
+// Has returns true if the given key exists in header.
+func (h JobHeaders) Has(key string) bool {
+	_, exists := h[key]
+	return exists
+}
+
 // JobPayload contains the main payload which will be consumed by a worker.
 type JobPayload interface{}
 
@@ -10,7 +16,7 @@ type JobPayload interface{}
 // metadata used by the worker.
 type Job struct {
 	Headers JobHeaders
-	PayLoad JobPayload
+	Payload JobPayload
 
 	MaxRetry int
 	nretry   int
@@ -18,7 +24,7 @@ type Job struct {
 
 // isZero returns true if job is 'empty'
 func (j Job) isZero() bool {
-	return j.Headers == nil && j.PayLoad == nil && j.MaxRetry == 0 && j.nretry == 0
+	return j.Headers == nil && j.Payload == nil && j.MaxRetry == 0 && j.nretry == 0
 }
 
 // Worker is the entity who consume the Job defined in the job queue. A worker

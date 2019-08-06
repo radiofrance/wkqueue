@@ -82,10 +82,16 @@ func (q *queue) Close() {
 }
 
 // WaitAndClose waits the job queue to be empty before closing all workers.
+// If all workers are suspended, this function run like Close.
 func (q *queue) WaitAndClose() {
 	q.sync.RLock()
 	if q.closed {
 		q.sync.RUnlock()
+		return
+	}
+	if q.suspended {
+		q.sync.RUnlock()
+		q.Close()
 		return
 	}
 	q.sync.RUnlock()
@@ -138,7 +144,7 @@ func (q *queue) ResumeWorkers() {
 		worker.resume <- workerSig{}
 		q.workerq <- worker
 	}
-	q.suspended = true
+	q.suspended = false
 }
 
 // NumWorkers returns the number of worker in worker queue.

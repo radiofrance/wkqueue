@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/radiofrance/wkqueue.svg?branch=master)](https://travis-ci.org/radiofrance/wkqueue)
 [![codecov](https://codecov.io/gh/radiofrance/wkqueue/branch/master/graph/badge.svg)](https://codecov.io/gh/radiofrance/wkqueue)
 [![Go Report Card](https://goreportcard.com/badge/github.com/radiofrance/wkqueue)](https://goreportcard.com/report/github.com/radiofrance/wkqueue)
-
+[![Documentation](https://godoc.org/github.com/radiofrance/wkqueue?status.svg)](http://godoc.org/github.com/radiofrance/wkqueue)
 ## What is wkqueue
 
 wkqueue is an open source library where some working queue are implemented :

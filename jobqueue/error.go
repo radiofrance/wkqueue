@@ -4,12 +4,25 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// ErrNoWorker occurs when no worker is provided.
 type ErrNoWorker struct{ error }
+
+// ErrNilWorker occurs when a nil worker is provided.
 type ErrNilWorker struct{ error }
+
+// ErrNilHandler occurs when a nil handler is provided.
 type ErrNilHandler struct{ error }
+
+// ErrMaxWorkerReached occurs when the queue reach the maximum number of workers.
 type ErrMaxWorkerReached struct{ error }
+
+// ErrMinWorkerReached never occurs (theoretically)
 type ErrMinWorkerReached struct{ error }
+
+// ErrJobTimeout occurs when a job time out.
 type ErrJobTimeout struct{ error }
+
+// ErrJobPanic occurs when a job panics.
 type ErrJobPanic struct{ error }
 
 const (

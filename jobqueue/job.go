@@ -3,7 +3,7 @@ package jobqueue
 // JobHeaders contains optional headers.
 type JobHeaders map[string]interface{}
 
-// JobHeaders contains the main payload which will be consumed by a worker.
+// JobPayload contains the main payload which will be consumed by a worker.
 type JobPayload interface{}
 
 // Job is the container for the job definition. It contains all data and
@@ -49,8 +49,17 @@ type Worker interface {
 // WorkerFunc wraps a function in a valid worker.
 type WorkerFunc func(job Job) error
 
-func (WorkerFunc) Initialize() error       { return nil }
-func (WorkerFunc) Terminate()              { return }
-func (f WorkerFunc) Do(job Job) error      { return f(job) }
+// Initialize does nothing (stateless worker)
+func (WorkerFunc) Initialize() error { return nil }
+
+// Terminate does nothing (stateless)
+func (WorkerFunc) Terminate() { return }
+
+// Do runs the given function.
+func (f WorkerFunc) Do(job Job) error { return f(job) }
+
+// CanConsume always returns true.
 func (WorkerFunc) CanConsume(job Job) bool { return true }
-func (f WorkerFunc) Copy() Worker          { return f }
+
+// Copy returns the same instance (stateless)
+func (f WorkerFunc) Copy() Worker { return f }

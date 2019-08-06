@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// TODO(ani): add documentation
+// Options configures the job queue.
 type Options interface {
 	apply(*queue) error
 }
@@ -27,6 +27,7 @@ type optionFuncNoErr func(*queue)
 func (f optionFunc) apply(q *queue) error      { return f(q) }
 func (f optionFuncNoErr) apply(q *queue) error { f(q); return nil }
 
+// AddWorker add the given worker to the work queue.
 func AddWorker(worker Worker) Options {
 	return optionFunc(func(q *queue) error {
 		if worker == nil {
@@ -36,24 +37,36 @@ func AddWorker(worker Worker) Options {
 		return nil
 	})
 }
+
+// SetJobCapacity sets the maximum number of job is the job queue.
 func SetJobCapacity(capacity uint) Options {
 	// don't need to close the channel (https://groups.google.com/forum/#!msg/golang-nuts/pZwdYRGxCIk/qpbHxRRPJdUJ)
 	// because channel is override each time, all non closed chan will be garbage collected
 	return optionFuncNoErr(func(q *queue) { q.jobq = make(chan Job, capacity) })
 }
+
+// SetWorkerCapacity sets the maximum number of parallel workers.
 func SetWorkerCapacity(capacity uint) Options {
 	// same as above
 	return optionFuncNoErr(func(q *queue) { q.workerq = make(chan workerSocket, capacity) })
 }
+
+// SetJobTimeout sets when a job timed out.
 func SetJobTimeout(timeout time.Duration) Options {
 	return optionFuncNoErr(func(q *queue) { q.jobTimeout = timeout })
 }
+
+// SetRetryDelay sets the delaying duration before a job must be sent to the queue.
 func SetRetryDelay(delay time.Duration) Options {
 	return optionFuncNoErr(func(q *queue) { q.retryDelay = delay })
 }
+
+// RequeueIfTimeout tries to rerun a job which has timed out.
 func RequeueIfTimeout() Options {
 	return optionFuncNoErr(func(q *queue) { q.requeueIfTimeout = true })
 }
+
+// SetSuccessHandler sets the function which will be called when a job is successfully consumed.
 func SetSuccessHandler(handler SuccessHandler) Options {
 	return optionFunc(func(q *queue) error {
 		if handler == nil {
@@ -63,6 +76,8 @@ func SetSuccessHandler(handler SuccessHandler) Options {
 		return nil
 	})
 }
+
+// SetDropHandler sets the function which will be called when a job is dropped.
 func SetDropHandler(handler DropHandler) Options {
 	return optionFunc(func(q *queue) error {
 		if handler == nil {
@@ -72,6 +87,8 @@ func SetDropHandler(handler DropHandler) Options {
 		return nil
 	})
 }
+
+// SetErrHandler sets the function which will be called when a worker returns an error or times out.
 func SetErrHandler(handler ErrHandler) Options {
 	return optionFunc(func(q *queue) error {
 		if handler == nil {
@@ -81,6 +98,8 @@ func SetErrHandler(handler ErrHandler) Options {
 		return nil
 	})
 }
+
+// SetPanicHandler sets the function which will be called when a worker panics.
 func SetPanicHandler(handler PanicHandler) Options {
 	return optionFunc(func(q *queue) error {
 		if handler == nil {

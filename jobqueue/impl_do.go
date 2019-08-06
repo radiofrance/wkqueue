@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// asyncExec runs the job asynchronously
 func (q *queue) asyncExec(wk Worker, job Job) error {
 	cerr := make(chan error)
 
@@ -35,6 +36,7 @@ func (q *queue) asyncExec(wk Worker, job Job) error {
 	}
 }
 
+// do is the main loop of the internal worker instance
 func (q *queue) do(wks workers, wkch workerSocket) {
 	defer wks.terminate()
 

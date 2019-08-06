@@ -12,7 +12,7 @@ type workerSocket struct {
 	resume    chan workerSig
 }
 
-// queue in an internal Queue implementation
+// queue in an internal Queue implementation.
 type queue struct {
 	jobTimeout       time.Duration
 	retryDelay       time.Duration
@@ -34,7 +34,7 @@ type queue struct {
 }
 
 // Sync return a channel synchronized with the job queue.
-// If the returned queue is closed, unexpected behaviors like panic can occurs.
+// If the returned queue is closed, then unexpected behaviors like panic can occur.
 func (q *queue) Sync() chan<- Job {
 	q.sync.RLock()
 	defer q.sync.RUnlock()
@@ -48,7 +48,7 @@ func (q *queue) Sync() chan<- Job {
 	return q.jobq
 }
 
-// Scale adds or removes worker to reach the given value.
+// Scale adds or removes workers to reach the given value.
 func (q *queue) Scale(workers uint) (int, error) {
 	q.sync.Lock()
 	defer q.sync.Unlock()
@@ -103,7 +103,7 @@ func (q *queue) WaitAndClose() {
 	return
 }
 
-// SuspendWorkers suspend all workers.
+// SuspendWorkers suspends all workers.
 func (q *queue) SuspendWorkers() {
 	q.sync.Lock()
 	defer q.sync.Unlock()
@@ -122,7 +122,7 @@ func (q *queue) SuspendWorkers() {
 	q.suspended = true
 }
 
-// ResumeWorkers resume all workers.
+// ResumeWorkers resumes all workers.
 func (q *queue) ResumeWorkers() {
 	q.sync.Lock()
 	defer q.sync.Unlock()
@@ -195,10 +195,10 @@ func (q *queue) removeWorker(workers int) (int, error) {
 	return -workers, nil
 }
 
-// workers simplify processes with several workers
+// workers simplify processes with several workers.
 type workers []Worker
 
-// copy make a copy of all workers
+// copy make a copy of all workers.
 func (ws workers) copy() workers {
 	copy := make([]Worker, len(ws))
 
@@ -208,7 +208,7 @@ func (ws workers) copy() workers {
 	return copy
 }
 
-// initialize all workers
+// initialize all workers.
 func (ws workers) initialize() error {
 	for _, w := range ws {
 		if err := w.Initialize(); err != nil {
@@ -218,7 +218,7 @@ func (ws workers) initialize() error {
 	return nil
 }
 
-// terminate all workers
+// terminate all workers.
 func (ws workers) terminate() {
 	for _, w := range ws {
 		w.Terminate()

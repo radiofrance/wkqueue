@@ -1,3 +1,4 @@
+// Package jobqueue is an implementation of a job centric working queue.
 package jobqueue
 
 import (
@@ -18,7 +19,9 @@ type DropHandler func(worker Worker, job Job)
 // PanicHandler is called a panic occurs.
 type PanicHandler func(worker Worker, recover interface{}, job Job)
 
-// TODO(ani): add documentation
+// Queue is a container around the job queue; we can
+// increase or decrease the number of workers, suspend
+// them or send a job to the job queue.
 type Queue interface {
 	Sync() chan<- Job
 
@@ -36,6 +39,7 @@ type Queue interface {
 	JobLoad() int
 }
 
+// New returns a new job queue.
 func New(opts ...Options) (Queue, error) {
 	q := &queue{sync: sync.RWMutex{}}
 

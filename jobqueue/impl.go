@@ -25,6 +25,7 @@ type queue struct {
 
 	rootWorkers workers
 	sync        sync.RWMutex
+	timerPool   sync.Pool
 
 	jobq    chan *Job
 	workerq chan workerSocket

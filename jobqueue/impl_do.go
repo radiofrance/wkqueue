@@ -22,8 +22,13 @@ func (q *queue) asyncExec(wk Worker, job *Job) error {
 	}()
 
 	// because job is a go routine, we need to wait a response (or timeout)
+	timer := q.timerPool.Get().(*time.Timer)
+	defer q.timerPool.Put(timer)
+
+	timer.Reset(q.jobTimeout)
 	select {
 	case err, ok := <-cerr:
+		timer.Stop()
 		if ok {
 			return err
 		}
@@ -31,7 +36,7 @@ func (q *queue) asyncExec(wk Worker, job *Job) error {
 		// which occurs only if job panics.
 		return newErrJobPanic()
 
-	case <-time.After(q.jobTimeout):
+	case <-timer.C:
 		return newErrJobTimeout()
 	}
 }

@@ -2,6 +2,7 @@ package jobqueue
 
 import (
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -53,7 +54,10 @@ func SetWorkerCapacity(capacity uint) Options {
 
 // SetJobTimeout sets when a job timed out.
 func SetJobTimeout(timeout time.Duration) Options {
-	return optionFuncNoErr(func(q *queue) { q.jobTimeout = timeout })
+	return optionFuncNoErr(func(q *queue) {
+		q.jobTimeout = timeout
+		q.timerPool = sync.Pool{New: func() interface{} { return time.NewTimer(time.Second) }}
+	})
 }
 
 // SetRetryDelay sets the delaying duration before a job must be sent to the queue.

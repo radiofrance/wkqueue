@@ -5,7 +5,7 @@ import (
 )
 
 // asyncExec runs the job asynchronously
-func (q *queue) asyncExec(wk Worker, job Job) error {
+func (q *queue) asyncExec(wk Worker, job *Job) error {
 	cerr := make(chan error)
 
 	// because worker must no be stucked or crashed, we need to run worker.Do

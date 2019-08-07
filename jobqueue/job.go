@@ -42,10 +42,10 @@ type Worker interface {
 	Terminate()
 
 	// Do consume the job stored in JobQueue.
-	Do(job Job) error
+	Do(job *Job) error
 
 	// CanConsume returns true if the worker can consume the given job.
-	CanConsume(job Job) bool
+	CanConsume(job *Job) bool
 
 	// Copy returns a 'copy' of a worker. Because some workflow need to share
 	// something between all worker, a copy can be made here.
@@ -53,7 +53,7 @@ type Worker interface {
 }
 
 // WorkerFunc wraps a function in a valid worker.
-type WorkerFunc func(job Job) error
+type WorkerFunc func(job *Job) error
 
 // Initialize does nothing (stateless worker)
 func (WorkerFunc) Initialize() error { return nil }
@@ -62,10 +62,10 @@ func (WorkerFunc) Initialize() error { return nil }
 func (WorkerFunc) Terminate() { return }
 
 // Do runs the given function.
-func (f WorkerFunc) Do(job Job) error { return f(job) }
+func (f WorkerFunc) Do(job *Job) error { return f(job) }
 
 // CanConsume always returns true.
-func (WorkerFunc) CanConsume(job Job) bool { return true }
+func (WorkerFunc) CanConsume(job *Job) bool { return true }
 
 // Copy returns the same instance (stateless)
 func (f WorkerFunc) Copy() Worker { return f }

@@ -26,7 +26,7 @@ type queue struct {
 	rootWorkers workers
 	sync        sync.RWMutex
 
-	jobq    chan Job
+	jobq    chan *Job
 	workerq chan workerSocket
 
 	suspended bool
@@ -35,13 +35,13 @@ type queue struct {
 
 // Sync return a channel synchronized with the job queue.
 // If the returned queue is closed, then unexpected behaviors like panic can occur.
-func (q *queue) Sync() chan<- Job {
+func (q *queue) Sync() chan<- *Job {
 	q.sync.RLock()
 	defer q.sync.RUnlock()
 
 	if q.closed {
 		// if jobq is closed, ignore new job
-		sync := make(chan Job)
+		sync := make(chan *Job)
 		go func() { defer close(sync); <-sync }()
 		return sync
 	}

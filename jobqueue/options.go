@@ -15,10 +15,10 @@ var defaultsOpts = []Options{
 	SetWorkerCapacity(uint(runtime.NumCPU())),
 	SetJobTimeout(time.Second),
 	SetRetryDelay(time.Second),
-	SetSuccessHandler(func(Worker, Job) {}),
-	SetDropHandler(func(Worker, Job) {}),
-	SetErrHandler(func(Worker, error, Job) {}),
-	SetPanicHandler(func(Worker, interface{}, Job) {}),
+	SetSuccessHandler(func(Worker, *Job) {}),
+	SetDropHandler(func(Worker, *Job) {}),
+	SetErrHandler(func(Worker, error, *Job) {}),
+	SetPanicHandler(func(Worker, interface{}, *Job) {}),
 }
 
 type optionFunc func(*queue) error
@@ -42,7 +42,7 @@ func AddWorker(worker Worker) Options {
 func SetJobCapacity(capacity uint) Options {
 	// don't need to close the channel (https://groups.google.com/forum/#!msg/golang-nuts/pZwdYRGxCIk/qpbHxRRPJdUJ)
 	// because channel is override each time, all non closed chan will be garbage collected
-	return optionFuncNoErr(func(q *queue) { q.jobq = make(chan Job, capacity) })
+	return optionFuncNoErr(func(q *queue) { q.jobq = make(chan *Job, capacity) })
 }
 
 // SetWorkerCapacity sets the maximum number of parallel workers.

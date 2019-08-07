@@ -16,16 +16,16 @@ func (d *DummyWorker) Initialize() error {
 	return nil
 }
 func (d DummyWorker) Terminate() {}
-func (d DummyWorker) Do(job jobqueue.Job) error {
+func (d DummyWorker) Do(job *jobqueue.Job) error {
 	fmt.Printf("(DummyWorker#%s) => %#v\n", d.string, job)
 	return nil
 }
-func (d DummyWorker) CanConsume(job jobqueue.Job) bool { return job.Headers.Has("dummy.enabled") }
-func (d DummyWorker) Copy() jobqueue.Worker            { return &DummyWorker{} }
+func (d DummyWorker) CanConsume(job *jobqueue.Job) bool { return job.Headers.Has("dummy.enabled") }
+func (d DummyWorker) Copy() jobqueue.Worker             { return &DummyWorker{} }
 
 func ExampleQueue_simpleQueue() {
 	q, _ := jobqueue.New(
-		jobqueue.AddWorker(jobqueue.WorkerFunc(func(j jobqueue.Job) error {
+		jobqueue.AddWorker(jobqueue.WorkerFunc(func(j *jobqueue.Job) error {
 			fmt.Printf("(WorkerFunc) => %#v\n", j)
 			return nil
 		})),
@@ -37,19 +37,19 @@ func ExampleQueue_simpleQueue() {
 	_, _ = q.Scale(2)
 
 	fmt.Println("(main) => Fill job queue")
-	q.Sync() <- jobqueue.Job{Payload: 0}
-	q.Sync() <- jobqueue.Job{Payload: 1}
-	q.Sync() <- jobqueue.Job{Payload: 2}
-	q.Sync() <- jobqueue.Job{Payload: 3}
-	q.Sync() <- jobqueue.Job{Payload: 4}
-	q.Sync() <- jobqueue.Job{Payload: 5}
+	q.Sync() <- &jobqueue.Job{Payload: 0}
+	q.Sync() <- &jobqueue.Job{Payload: 1}
+	q.Sync() <- &jobqueue.Job{Payload: 2}
+	q.Sync() <- &jobqueue.Job{Payload: 3}
+	q.Sync() <- &jobqueue.Job{Payload: 4}
+	q.Sync() <- &jobqueue.Job{Payload: 5}
 
 	q.WaitAndClose()
 }
 
 func ExampleQueue_multiWorkerQueue() {
 	q, _ := jobqueue.New(
-		jobqueue.AddWorker(jobqueue.WorkerFunc(func(j jobqueue.Job) error {
+		jobqueue.AddWorker(jobqueue.WorkerFunc(func(j *jobqueue.Job) error {
 			fmt.Printf("(WorkerFunc) => %#v\n", j)
 			return nil
 		})),
@@ -62,19 +62,19 @@ func ExampleQueue_multiWorkerQueue() {
 	_, _ = q.Scale(2)
 
 	fmt.Println("(main) => Fill job queue")
-	q.Sync() <- jobqueue.Job{Payload: 0}
-	q.Sync() <- jobqueue.Job{Payload: 1, Headers: map[string]interface{}{"dummy.enabled": true}}
-	q.Sync() <- jobqueue.Job{Payload: 2}
-	q.Sync() <- jobqueue.Job{Payload: 3}
-	q.Sync() <- jobqueue.Job{Payload: 4, Headers: map[string]interface{}{"dummy.enabled": true}}
-	q.Sync() <- jobqueue.Job{Payload: 5}
+	q.Sync() <- &jobqueue.Job{Payload: 0}
+	q.Sync() <- &jobqueue.Job{Payload: 1, Headers: map[string]interface{}{"dummy.enabled": true}}
+	q.Sync() <- &jobqueue.Job{Payload: 2}
+	q.Sync() <- &jobqueue.Job{Payload: 3}
+	q.Sync() <- &jobqueue.Job{Payload: 4, Headers: map[string]interface{}{"dummy.enabled": true}}
+	q.Sync() <- &jobqueue.Job{Payload: 5}
 
 	q.WaitAndClose()
 }
 
 func ExampleQueue_suspendedQueue() {
 	q, _ := jobqueue.New(
-		jobqueue.AddWorker(jobqueue.WorkerFunc(func(j jobqueue.Job) error {
+		jobqueue.AddWorker(jobqueue.WorkerFunc(func(j *jobqueue.Job) error {
 			fmt.Printf("(WorkerFunc) => %#v\n", j)
 			return nil
 		})),
@@ -84,22 +84,22 @@ func ExampleQueue_suspendedQueue() {
 	fmt.Println("(main) => Upscale workers")
 	_, _ = q.Scale(8)
 
-	q.Sync() <- jobqueue.Job{Payload: 0}
-	q.Sync() <- jobqueue.Job{Payload: 1}
-	q.Sync() <- jobqueue.Job{Payload: 2}
+	q.Sync() <- &jobqueue.Job{Payload: 0}
+	q.Sync() <- &jobqueue.Job{Payload: 1}
+	q.Sync() <- &jobqueue.Job{Payload: 2}
 
 	fmt.Println("(main) => Wait 100ms")
 	time.Sleep(100 * time.Millisecond)
 	fmt.Println("(main) => Suspend workers")
 	q.SuspendWorkers()
 
-	q.Sync() <- jobqueue.Job{Payload: 3}
-	q.Sync() <- jobqueue.Job{Payload: 4}
-	q.Sync() <- jobqueue.Job{Payload: 5}
-	q.Sync() <- jobqueue.Job{Payload: 6}
-	q.Sync() <- jobqueue.Job{Payload: 7}
-	q.Sync() <- jobqueue.Job{Payload: 8}
-	q.Sync() <- jobqueue.Job{Payload: 9}
+	q.Sync() <- &jobqueue.Job{Payload: 3}
+	q.Sync() <- &jobqueue.Job{Payload: 4}
+	q.Sync() <- &jobqueue.Job{Payload: 5}
+	q.Sync() <- &jobqueue.Job{Payload: 6}
+	q.Sync() <- &jobqueue.Job{Payload: 7}
+	q.Sync() <- &jobqueue.Job{Payload: 8}
+	q.Sync() <- &jobqueue.Job{Payload: 9}
 
 	fmt.Printf("(main) => job queue has %d elements\n", q.JobLoad())
 	fmt.Println("(main) => Downscale workers")

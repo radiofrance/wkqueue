@@ -45,11 +45,11 @@ var testmap = map[string]func(t *testing.T, q *queue, expect interface{}){
 }
 
 func TestNew(t *testing.T) {
-	worker := WorkerFunc(func(Job) error { return nil })
-	successH := SuccessHandler(func(Worker, Job) {})
-	dropH := DropHandler(func(Worker, Job) {})
-	errH := ErrHandler(func(Worker, error, Job) {})
-	panicH := PanicHandler(func(Worker, interface{}, Job) {})
+	worker := WorkerFunc(func(*Job) error { return nil })
+	successH := SuccessHandler(func(Worker, *Job) {})
+	dropH := DropHandler(func(Worker, *Job) {})
+	errH := ErrHandler(func(Worker, error, *Job) {})
+	panicH := PanicHandler(func(Worker, interface{}, *Job) {})
 
 	defaultsOpts := []Options{AddWorker(worker)}
 
@@ -99,7 +99,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestNew_Default(t *testing.T) {
-	jq, err := New(AddWorker(WorkerFunc(func(Job) error { return nil })))
+	jq, err := New(AddWorker(WorkerFunc(func(*Job) error { return nil })))
 	assert.NoError(t, err)
 
 	assert.Equal(t, runtime.NumCPU(), jq.WorkersLimit())
@@ -126,7 +126,7 @@ type JobQueueTestSuite struct {
 
 func (s *JobQueueTestSuite) SetupTest() {
 	s.q, _ = New(
-		AddWorker(WorkerFunc(func(j Job) error { return nil })),
+		AddWorker(WorkerFunc(func(*Job) error { return nil })),
 		SetWorkerCapacity(4),
 	)
 }
@@ -138,13 +138,13 @@ func (s *JobQueueTestSuite) TearDown() {
 func (s *JobQueueTestSuite) TestSync() {
 	// fill job queue
 	for i := 0; i < s.q.JobCapacity(); i++ {
-		s.q.Sync() <- Job{MaxRetry: 1}
+		s.q.Sync() <- &Job{MaxRetry: 1}
 	}
 	s.Equal(s.q.JobCapacity(), s.q.JobLoad())
 
 	// sync test when job queue is full
 	select {
-	case s.q.Sync() <- Job{MaxRetry: 1}:
+	case s.q.Sync() <- &Job{MaxRetry: 1}:
 		s.FailNow("Sync call must be blocked (job queue is full)")
 	case <-time.After(time.Millisecond):
 	}
@@ -156,14 +156,14 @@ func (s *JobQueueTestSuite) TestSync() {
 
 	// sync test when job queue is not full
 	select {
-	case s.q.Sync() <- Job{MaxRetry: 1}:
+	case s.q.Sync() <- &Job{MaxRetry: 1}:
 	case <-time.After(time.Millisecond):
 		s.FailNow("Sync call must not be blocked (job queue is not full)")
 	}
 
 	// call sync after close jobq must be ignored (to avoid panic)
 	s.q.Close()
-	s.NotPanics(func() { s.q.Sync() <- Job{MaxRetry: 1} })
+	s.NotPanics(func() { s.q.Sync() <- &Job{MaxRetry: 1} })
 }
 func (s *JobQueueTestSuite) TestMultiClose() {
 	s.q.Close()
@@ -173,13 +173,13 @@ func (s *JobQueueTestSuite) TestMultiClose() {
 func (s *JobQueueTestSuite) TestClose() {
 	s.q.Close()
 	s.q, _ = New(
-		AddWorker(WorkerFunc(func(Job) error { time.Sleep(time.Millisecond); return nil })),
+		AddWorker(WorkerFunc(func(*Job) error { time.Sleep(time.Millisecond); return nil })),
 	)
-	s.q.Sync() <- Job{MaxRetry: 1}
-	s.q.Sync() <- Job{MaxRetry: 1}
-	s.q.Sync() <- Job{MaxRetry: 1}
-	s.q.Sync() <- Job{MaxRetry: 1}
-	s.q.Sync() <- Job{MaxRetry: 1}
+	s.q.Sync() <- &Job{MaxRetry: 1}
+	s.q.Sync() <- &Job{MaxRetry: 1}
+	s.q.Sync() <- &Job{MaxRetry: 1}
+	s.q.Sync() <- &Job{MaxRetry: 1}
+	s.q.Sync() <- &Job{MaxRetry: 1}
 
 	s.q.Scale(4)
 	start := time.Now()
@@ -192,13 +192,13 @@ func (s *JobQueueTestSuite) TestClose() {
 func (s *JobQueueTestSuite) TestWaitAndClose() {
 	s.q.Close()
 	s.q, _ = New(
-		AddWorker(WorkerFunc(func(Job) error { time.Sleep(time.Millisecond); return nil })),
+		AddWorker(WorkerFunc(func(*Job) error { time.Sleep(time.Millisecond); return nil })),
 	)
-	s.q.Sync() <- Job{MaxRetry: 1}
-	s.q.Sync() <- Job{MaxRetry: 1}
-	s.q.Sync() <- Job{MaxRetry: 1}
-	s.q.Sync() <- Job{MaxRetry: 1}
-	s.q.Sync() <- Job{MaxRetry: 1}
+	s.q.Sync() <- &Job{MaxRetry: 1}
+	s.q.Sync() <- &Job{MaxRetry: 1}
+	s.q.Sync() <- &Job{MaxRetry: 1}
+	s.q.Sync() <- &Job{MaxRetry: 1}
+	s.q.Sync() <- &Job{MaxRetry: 1}
 
 	s.q.Scale(4)
 	start := time.Now()
@@ -213,7 +213,7 @@ type WorkerTestSuite struct{ suite.Suite }
 
 func (s *WorkerTestSuite) TestWorkerScaling() {
 	q, _ := New(
-		AddWorker(WorkerFunc(func(j Job) error { return nil })),
+		AddWorker(WorkerFunc(func(*Job) error { return nil })),
 		SetWorkerCapacity(4),
 	)
 	defer q.Close()
@@ -252,33 +252,33 @@ func (s *WorkerTestSuite) TestFailedWorker() {
 	s.Equal(0, n)
 }
 func (s *WorkerTestSuite) TestMultiWorker() {
-	wk1, wk2 := make(chan Job), make(chan Job)
+	wk1, wk2 := make(chan *Job), make(chan *Job)
 	q, _ := New(
-		AddWorker(WorkerFunc(func(j Job) error { wk1 <- j; return nil })),
-		AddWorker(WorkerFunc(func(j Job) error { wk2 <- j; return nil })),
+		AddWorker(WorkerFunc(func(j *Job) error { wk1 <- j; return nil })),
+		AddWorker(WorkerFunc(func(j *Job) error { wk2 <- j; return nil })),
 	)
 	defer q.Close()
 	q.Scale(1)
 
-	q.Sync() <- Job{MaxRetry: 1}
-	s.Equal(Job{MaxRetry: 1}, <-wk1)
-	s.Equal(Job{MaxRetry: 1}, <-wk2)
+	q.Sync() <- &Job{MaxRetry: 1}
+	s.Equal(&Job{MaxRetry: 1}, <-wk1)
+	s.Equal(&Job{MaxRetry: 1}, <-wk2)
 }
 func (s *WorkerTestSuite) TestSuspendWorker() {
 	q, _ := New(
-		AddWorker(WorkerFunc(func(j Job) error { return nil })),
+		AddWorker(WorkerFunc(func(*Job) error { return nil })),
 		SetJobCapacity(1),
 	)
 	defer q.Close()
 	q.Scale(1)
 
-	q.Sync() <- Job{}
+	q.Sync() <- &Job{}
 	time.Sleep(time.Millisecond) // wait worker to consume the job
 	s.Equal(0, q.JobLoad())
 
 	q.SuspendWorkers()
 
-	q.Sync() <- Job{}
+	q.Sync() <- &Job{}
 	time.Sleep(time.Millisecond) // wait worker to consume the job
 	s.Equal(1, q.JobLoad())      // expect 1 because workers are suspended
 
@@ -290,14 +290,14 @@ func (s *WorkerTestSuite) TestSuspendWorker() {
 
 type JobTestSuite struct{ suite.Suite }
 
-func (s *JobTestSuite) getDroppedJob(ch chan Job) Job {
+func (s *JobTestSuite) getDroppedJob(ch chan *Job) *Job {
 	select {
 	case j := <-ch:
 		return j
 	case <-time.After(time.Second):
 		s.FailNow("message not dropped")
 	}
-	return Job{}
+	return &Job{}
 }
 func (s *JobTestSuite) getPanickedJob(ch chan interface{}) interface{} {
 	select {
@@ -309,78 +309,78 @@ func (s *JobTestSuite) getPanickedJob(ch chan interface{}) interface{} {
 	return nil
 }
 func (s *JobTestSuite) TestJobDrop() {
-	droppedJob := make(chan Job)
+	droppedJob := make(chan *Job)
 	q, _ := New(
-		AddWorker(WorkerFunc(func(Job) error { return xerrors.New("drop it !") })),
+		AddWorker(WorkerFunc(func(*Job) error { return xerrors.New("drop it !") })),
 		SetRetryDelay(0),
-		SetDropHandler(func(_ Worker, job Job) { droppedJob <- job }),
+		SetDropHandler(func(_ Worker, job *Job) { droppedJob <- job }),
 	)
 	defer q.Close()
 	q.Scale(1)
 
-	q.Sync() <- Job{MaxRetry: 1}
+	q.Sync() <- &Job{MaxRetry: 1}
 	s.Equal(2, s.getDroppedJob(droppedJob).nretry)
 
-	q.Sync() <- Job{MaxRetry: 5}
+	q.Sync() <- &Job{MaxRetry: 5}
 	s.Equal(6, s.getDroppedJob(droppedJob).nretry)
 }
 func (s *JobTestSuite) TestDropNoValidWorker() {
-	droppedJob := make(chan Job)
+	droppedJob := make(chan *Job)
 	q, _ := New(
 		AddWorker(&dummyWorker{}),
 		SetRetryDelay(0),
-		SetDropHandler(func(_ Worker, job Job) { droppedJob <- job }),
+		SetDropHandler(func(_ Worker, job *Job) { droppedJob <- job }),
 	)
 	defer q.Close()
 	q.Scale(1)
 
-	q.Sync() <- Job{MaxRetry: 5}
+	q.Sync() <- &Job{MaxRetry: 5}
 	s.Equal(0, s.getDroppedJob(droppedJob).nretry)
 }
 func (s *JobTestSuite) TestJobTimeout() {
-	droppedJob := make(chan Job)
+	droppedJob := make(chan *Job)
 	q, _ := New(
-		AddWorker(WorkerFunc(func(Job) error { time.Sleep(time.Microsecond); return nil })),
+		AddWorker(WorkerFunc(func(*Job) error { time.Sleep(time.Microsecond); return nil })),
 		SetJobTimeout(time.Nanosecond),
 		SetRetryDelay(0),
-		SetDropHandler(func(_ Worker, job Job) { droppedJob <- job }),
+		SetDropHandler(func(_ Worker, job *Job) { droppedJob <- job }),
 	)
 	defer q.Close()
 	q.Scale(1)
 
-	q.Sync() <- Job{MaxRetry: 5}
+	q.Sync() <- &Job{MaxRetry: 5}
 	s.Equal(0, s.getDroppedJob(droppedJob).nretry)
 }
 func (s *JobTestSuite) TestJobRequeueTimeout() {
-	droppedJob := make(chan Job)
+	droppedJob := make(chan *Job)
 	q, _ := New(
-		AddWorker(WorkerFunc(func(Job) error { time.Sleep(time.Microsecond); return nil })),
+		AddWorker(WorkerFunc(func(*Job) error { time.Sleep(time.Microsecond); return nil })),
 		RequeueIfTimeout(),
 		SetJobTimeout(time.Nanosecond),
 		SetRetryDelay(0),
-		SetDropHandler(func(_ Worker, job Job) { droppedJob <- job }),
+		SetDropHandler(func(_ Worker, job *Job) { droppedJob <- job }),
 	)
 	defer q.Close()
 	q.Scale(1)
 
-	q.Sync() <- Job{MaxRetry: 5}
+	q.Sync() <- &Job{MaxRetry: 5}
 	s.Equal(6, s.getDroppedJob(droppedJob).nretry)
 }
 func (s *JobTestSuite) TestJobPanic() {
-	droppedJob := make(chan Job)
+	droppedJob := make(chan *Job)
 	panickedJob := make(chan interface{})
 	q, _ := New(
-		AddWorker(WorkerFunc(func(Job) error { panic("wooops") })),
+		AddWorker(WorkerFunc(func(*Job) error { panic("wooops") })),
 		RequeueIfTimeout(),
 		SetJobTimeout(time.Microsecond),
 		SetRetryDelay(0),
-		SetDropHandler(func(_ Worker, job Job) { droppedJob <- job }),
-		SetPanicHandler(func(_ Worker, r interface{}, job Job) { panickedJob <- r }),
+		SetDropHandler(func(_ Worker, job *Job) { droppedJob <- job }),
+		SetPanicHandler(func(_ Worker, r interface{}, job *Job) { panickedJob <- r }),
 	)
 	defer q.Close()
 	q.Scale(1)
 
-	q.Sync() <- Job{MaxRetry: 5}
+	q.Sync() <- &Job{MaxRetry: 5}
 	s.Equal("wooops", s.getPanickedJob(panickedJob))
 	s.Equal("wooops", s.getPanickedJob(panickedJob))
 	s.Equal("wooops", s.getPanickedJob(panickedJob))
@@ -393,14 +393,14 @@ type dummyWorker struct{}
 
 func (d dummyWorker) Initialize() error       { return nil }
 func (d dummyWorker) Terminate()              {}
-func (d dummyWorker) Do(job Job) error        { return nil }
-func (d dummyWorker) CanConsume(job Job) bool { return job.Headers != nil }
+func (d dummyWorker) Do(job *Job) error        { return nil }
+func (d dummyWorker) CanConsume(job *Job) bool { return job.Headers != nil }
 func (d dummyWorker) Copy() Worker            { return &dummyWorker{} }
 
 type errWorker struct{}
 
 func (e errWorker) Initialize() error       { return xerrors.New("nope") }
 func (e errWorker) Terminate()              {}
-func (e errWorker) Do(job Job) error        { return nil }
-func (e errWorker) CanConsume(job Job) bool { return true }
+func (e errWorker) Do(job *Job) error        { return nil }
+func (e errWorker) CanConsume(job *Job) bool { return true }
 func (e errWorker) Copy() Worker            { return &errWorker{} }

@@ -10,6 +10,7 @@ func (q *queue) asyncExec(wk Worker, job *Job) error {
 
 	// because worker must no be stucked or crashed, we need to run worker.Do
 	// in a goroutine with panic recovering.
+	// FIXME goroutine leak
 	go func() {
 		defer func() {
 			r := recover()
